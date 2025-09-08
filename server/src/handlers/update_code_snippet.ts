@@ -1,23 +1,50 @@
+import { db } from '../db';
+import { codeSnippetsTable } from '../db/schema';
 import { type UpdateCodeSnippetInput, type CodeSnippet } from '../schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Handler for updating an existing code snippet.
  * Allows modification of title, code content, language, and description.
  * Updates the updated_at timestamp automatically.
  */
-export async function updateCodeSnippet(input: UpdateCodeSnippetInput): Promise<CodeSnippet> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is updating code snippet information in the database.
-    // Should validate snippet exists and user has permission to modify it.
-    return Promise.resolve({
-        id: input.id,
-        conversation_id: 0, // Would be fetched from DB
-        message_id: null, // Would be fetched from DB
-        title: input.title || 'Placeholder Snippet',
-        code: input.code || 'console.log("placeholder");',
-        language: input.language || 'javascript',
-        description: input.description !== undefined ? input.description : null,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as CodeSnippet);
-}
+export const updateCodeSnippet = async (input: UpdateCodeSnippetInput): Promise<CodeSnippet> => {
+  try {
+    // Build the update object with only provided fields
+    const updateData: any = {
+      updated_at: new Date()
+    };
+
+    if (input.title !== undefined) {
+      updateData.title = input.title;
+    }
+
+    if (input.code !== undefined) {
+      updateData.code = input.code;
+    }
+
+    if (input.language !== undefined) {
+      updateData.language = input.language;
+    }
+
+    if (input.description !== undefined) {
+      updateData.description = input.description;
+    }
+
+    // Update the code snippet
+    const result = await db.update(codeSnippetsTable)
+      .set(updateData)
+      .where(eq(codeSnippetsTable.id, input.id))
+      .returning()
+      .execute();
+
+    if (result.length === 0) {
+      throw new Error(`Code snippet with id ${input.id} not found`);
+    }
+
+    return result[0];
+  } catch (error) {
+    console.error('Code snippet update failed:', error);
+    throw error;
+  }
+};

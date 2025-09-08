@@ -1,4 +1,7 @@
+import { db } from '../db';
+import { projectsTable } from '../db/schema';
 import { type GetUserProjectsInput, type Project } from '../schema';
+import { eq, desc } from 'drizzle-orm';
 
 /**
  * Handler for retrieving all projects belonging to a specific user.
@@ -6,8 +9,16 @@ import { type GetUserProjectsInput, type Project } from '../schema';
  * Used for displaying the user's project list in the UI.
  */
 export async function getUserProjects(input: GetUserProjectsInput): Promise<Project[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all projects for a user from the database.
-    // Should return projects ordered by updated_at desc.
-    return Promise.resolve([]);
+  try {
+    const results = await db.select()
+      .from(projectsTable)
+      .where(eq(projectsTable.user_id, input.user_id))
+      .orderBy(desc(projectsTable.updated_at))
+      .execute();
+
+    return results;
+  } catch (error) {
+    console.error('Failed to get user projects:', error);
+    throw error;
+  }
 }

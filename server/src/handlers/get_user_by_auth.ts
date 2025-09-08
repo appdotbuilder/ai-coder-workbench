@@ -1,4 +1,7 @@
+import { db } from '../db';
+import { usersTable } from '../db/schema';
 import { type AuthInput, type User } from '../schema';
+import { eq, and } from 'drizzle-orm';
 
 /**
  * Handler for authenticating users by their OAuth provider or email.
@@ -6,8 +9,23 @@ import { type AuthInput, type User } from '../schema';
  * Searches by auth_provider and auth_provider_id combination.
  */
 export async function getUserByAuth(input: AuthInput): Promise<User | null> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is finding a user by their authentication provider info.
-    // Should return null if user doesn't exist, User object if found.
-    return Promise.resolve(null);
+  try {
+    const results = await db.select()
+      .from(usersTable)
+      .where(and(
+        eq(usersTable.auth_provider, input.auth_provider),
+        eq(usersTable.auth_provider_id, input.auth_provider_id)
+      ))
+      .limit(1)
+      .execute();
+
+    if (results.length === 0) {
+      return null;
+    }
+
+    return results[0];
+  } catch (error) {
+    console.error('User authentication lookup failed:', error);
+    throw error;
+  }
 }

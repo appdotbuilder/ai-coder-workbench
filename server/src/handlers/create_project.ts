@@ -1,4 +1,7 @@
+import { db } from '../db';
+import { projectsTable, usersTable } from '../db/schema';
 import { type CreateProjectInput, type Project } from '../schema';
+import { eq } from 'drizzle-orm';
 
 /**
  * Handler for creating a new project for a user.
@@ -6,16 +9,32 @@ import { type CreateProjectInput, type Project } from '../schema';
  * Associates the project with the authenticated user and sets initial metadata.
  */
 export async function createProject(input: CreateProjectInput): Promise<Project> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is creating a new project for a user in the database.
-    // Should validate user exists and create project with proper associations.
-    return Promise.resolve({
-        id: 0, // Placeholder ID
+  try {
+    // Validate that the user exists
+    const existingUser = await db.select()
+      .from(usersTable)
+      .where(eq(usersTable.id, input.user_id))
+      .limit(1)
+      .execute();
+
+    if (existingUser.length === 0) {
+      throw new Error(`User with ID ${input.user_id} does not exist`);
+    }
+
+    // Insert project record
+    const result = await db.insert(projectsTable)
+      .values({
         user_id: input.user_id,
         name: input.name,
         description: input.description || null,
-        coding_language: input.coding_language,
-        created_at: new Date(),
-        updated_at: new Date()
-    } as Project);
+        coding_language: input.coding_language
+      })
+      .returning()
+      .execute();
+
+    return result[0];
+  } catch (error) {
+    console.error('Project creation failed:', error);
+    throw error;
+  }
 }

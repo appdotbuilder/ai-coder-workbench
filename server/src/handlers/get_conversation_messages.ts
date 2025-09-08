@@ -1,4 +1,7 @@
+import { db } from '../db';
+import { messagesTable } from '../db/schema';
 import { type GetConversationMessagesInput, type Message } from '../schema';
+import { eq, asc } from 'drizzle-orm';
 
 /**
  * Handler for retrieving all messages in a conversation.
@@ -6,8 +9,21 @@ import { type GetConversationMessagesInput, type Message } from '../schema';
  * Includes both user messages and AI responses with metadata.
  */
 export async function getConversationMessages(input: GetConversationMessagesInput): Promise<Message[]> {
-    // This is a placeholder declaration! Real code should be implemented here.
-    // The goal of this handler is fetching all messages for a conversation from the database.
-    // Should return messages ordered by created_at asc for chronological chat display.
-    return Promise.resolve([]);
+  try {
+    // Query messages for the conversation, ordered chronologically
+    const results = await db.select()
+      .from(messagesTable)
+      .where(eq(messagesTable.conversation_id, input.conversation_id))
+      .orderBy(asc(messagesTable.created_at))
+      .execute();
+
+    // Return messages with proper metadata type casting
+    return results.map(result => ({
+      ...result,
+      metadata: result.metadata as Record<string, any> | null
+    }));
+  } catch (error) {
+    console.error('Get conversation messages failed:', error);
+    throw error;
+  }
 }
